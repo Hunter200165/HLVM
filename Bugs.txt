@@ -1,0 +1,68 @@
+[UnSolved][Compilation]: 
+	1.[Semi-Solved] Compiler generates invalid bytecode for valid new-indexing operation:
+		A['B'].C := 12; -- Valid bytecode
+		A.B.C := 12; -- Produces invalid bytecode sequence.
+		
+	2.[Non-Solved] Compiler generates invalid bytecode for `await` operator:
+		await f(x); -- Produces invalid bytecode, that contains extra `MoveStckPtr` and `ReturnStckPtr`
+		
+	3.[Semi-Solved (v1.6)] Linker produces invalid linked bytecode for HighestVariables:
+		local A := 23;
+		function Inc();
+		begin 
+			A := A + 1; 
+			--[[ 
+				This produces invalid sequence, by which indexes of same highest variables are different! (&0 != &1)
+				Assign:
+					PushVar Highest &1 <'A'>
+					Add:
+						PushVar Highest &0 <'A'>
+						PushInt Int => 1
+			]]
+		end;
+		
+	4.[Note] Linker must produce IndexCache instruction, but does not do it.
+		A.f(x); -->
+		--[[ 
+			Call:
+				Index:                         <====== Should be IndexCache
+					PushString 'f'           
+					PushVar Global? <'A'>
+				PushVar Global? <'x'>
+		]]
+		
+	5.[Semi-Solved] Compiler generates invalid bytecode for `else` after `begin end` block.
+		--[[ Normal bytecode ]]
+		if A then 
+			A := A + 1
+		else 
+			A := 0;
+			
+		--[[ Not normal bytecode ]]
+		if A then begin 
+			A := A + 1;
+		end 
+		else begin 
+			A := 0;
+		end;
+	
+	6.[Non-Solved] Compiler does not undrestand `end`/`else`/`until` as the end of statement.
+		--[[ Should work, but it does not ]]
+		if A then begin
+			-- No semicolon before `end`
+			A := A + 1 
+		end;
+		
+	7.[Non-Solved] Compiler enters infinite loop when inexisting operators are used, or when syntax is broken.
+		--[[ Will not throw, but instead will enter infinite loop ]]
+		A ++ A;
+	
+	8.[Non-Solved] Compiler cannot stop at the end of text stream:
+		--[[ Will throw (without final semicolon) ]]
+		A + 1 
+		
+	9.[Non-Solved] Some constructions do not handle invalid syntax: 
+		--[[ Compiles ]]
+		for i := to do ;
+		if then ;
+		while do ;
